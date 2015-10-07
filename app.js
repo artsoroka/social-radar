@@ -14,16 +14,42 @@ app.set('views', __dirname + '/views');
 app.get('/', function (req, res) {
     res.render('index.ejs', {
       settings: JSON.stringify({
-          host: config.APP.host
+          host: config.APP.host, 
+          port: config.APP.port || 80, 
+          channelId: 'main'
+      })
+    }); 
+});
+
+app.get('/feed/:channelId', function (req, res) {
+    res.render('index.ejs', {
+      settings: JSON.stringify({
+          host: config.APP.host, 
+          port: config.APP.port || 80, 
+          channelId: req.params.channelId 
       })
     }); 
 });
 
 io.on('connection', function (socket) {
-    setInterval(function(){
-        socket.emit('post', {provider: 'twitter', content: 'hello from twitter'});
-    }, 5000); 
-  
-}); 
 
-server.listen(8080); 
+  var channel = socket.handshake.query.channelId || 'main';  
+	socket.emit('welcome', null); 
+  
+  socket.join(channel); 
+  
+  socket.on('disconnect', function(){
+    socket.leave(channel); 
+  }); 
+
+}); 
+setInterval(function(){ 
+  io
+    .to('main')
+    .emit('post', { 
+      provider: 'internet', 
+      content: 'hello world' 
+    });
+},1000); 
+
+server.listen(config.APP.port); 

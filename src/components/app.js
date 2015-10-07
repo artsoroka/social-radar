@@ -14,7 +14,10 @@ var App = React.createClass({
 	
 	componentDidMount: function(){
         var self = this;
-        var socket = io.connect(this.props.settings.host);
+        var ws = this.props.settings.host + ':' + this.props.settings.port;
+        var channelId = 'channelId=' + this.props.settings.channelId; 
+        console.log('connecting', channelId); 
+        var socket = io.connect(ws, {query: channelId}); 
     
         socket.on('post', function (data) {
             self.addPost(data);

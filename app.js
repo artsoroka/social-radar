@@ -1,9 +1,10 @@
-var express = require('express'); 
-var app     = express(); 
-var server  = require('http').Server(app);
-var io      = require('socket.io')(server);
-var config  = require('./config')
-var bodyParser   = require('body-parser'); 
+var express    = require('express'); 
+var app        = express(); 
+var server     = require('http').Server(app);
+var io         = require('socket.io')(server);
+var config     = require('./config')
+var bodyParser = require('body-parser'); 
+var redis      = require('redis').createClient(); 
 
 app.use(express.static(__dirname + '/public')); 
 app.use(bodyParser.urlencoded({ extended: false })); 
@@ -43,6 +44,7 @@ io.on('connection', function (socket) {
   }); 
 
 }); 
+
 setInterval(function(){ 
   io
     .to('main')
@@ -50,6 +52,27 @@ setInterval(function(){
       provider: 'internet', 
       content: 'hello world' 
     });
-},1000); 
+},5000); 
+
+redis.on('message', function(chan, msg){
+  var data; 
+  try{
+    data = JSON.parse(msg)
+  } catch(e){
+    console.log('failed to parse JSON comming from redis'); 
+  }
+  
+  if( ! data ) return; 
+  
+  io
+    .to(data.channel)
+    .emit('post', {
+      provider: data.provider, 
+      content: data.content
+    }); 
+
+}); 
+
+redis.subscribe('posts'); 
 
 server.listen(config.APP.port); 
